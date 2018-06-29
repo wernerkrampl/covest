@@ -158,6 +158,13 @@ def print_output(
             output_data['genome_size_reads'] = safe_int(
                 round(reads_size / (estimated[0] * sample_factor * orig_sample_factor))
             )
+        if model.short_name() == 'basic_polymorphism':
+            coverage = output_data['coverage']
+            error_rate = output_data['error_rate']
+            gamma = output_data['gamma']
+            genome_size = output_data['genome_size']
+            output_data['polymorphism rate'] = float(model.compute_polymorphism_rate(
+            coverage, error_rate, gamma, genome_size))
     if orig is not None and any(orig):
         output_data.update(params_to_dict(('provided_%s' % name for name in model.params), orig))
         try:

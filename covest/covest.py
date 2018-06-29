@@ -134,7 +134,7 @@ def main(args):
 
     # Model initialisation
     model = select_model(args.model)(
-        args.kmer_size, args.read_length, hist, tail,
+        args.kmer_size, args.read_length, hist, tail, hist_orig,
         max_error=constants.MAX_ERRORS, max_cov=args.max_coverage,
         min_single_copy_ratio=args.min_q1,
     )

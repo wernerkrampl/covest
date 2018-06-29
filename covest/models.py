@@ -16,7 +16,7 @@ MODEL_CLASS_SUFFIX = 'Model'
 
 class BasicModel:
     params = ('coverage', 'error_rate')
-    def __init__(self, k, r, hist, tail, max_error=None, max_cov=None, *args, **kwargs):
+    def __init__(self, k, r, hist, tail, orig_hist, max_error=None, max_cov=None, *args, **kwargs):
         self.repeats = False
         self.k = k
         self.r = r
@@ -24,6 +24,7 @@ class BasicModel:
         self.defaults = (1, self._default_param(1))
         self.comb = [comb(k, s) * (3 ** s) for s in range(k + 1)]
         self.hist = hist
+        self.orig_hist = orig_hist
         self.tail = tail
         if max_error is None:
             self.max_error = self.k + 1
@@ -172,9 +173,9 @@ class BasicModel:
 
 class RepeatsModel(BasicModel):
     params = BasicModel.params + ('q1', 'q2', 'q')
-    def __init__(self, k, r, hist, tail, max_error=None, max_cov=None, threshold=1e-8,
+    def __init__(self, k, r, hist, tail, orig_hist, max_error=None, max_cov=None, threshold=1e-8,
                  min_single_copy_ratio=0.3, *args, **kwargs):
-        super(RepeatsModel, self).__init__(k, r, hist, tail, max_error=max_error)
+        super(RepeatsModel, self).__init__(k, r, hist, tail, orig_hist, max_error=max_error)
         self.repeats = True
         self.bounds = self.bounds +  ((min_single_copy_ratio, 1), (0, 1), (0, 1))
         self.defaults = self.defaults + tuple(
@@ -239,6 +240,78 @@ class RepeatsModel(BasicModel):
                 ) for o in range(1, threshold_o)
             ) for j in self.hist
         }
+        return p_j
+
+class Basic_PolymorphismModel(BasicModel):
+    params = (BasicModel.params[0],BasicModel.params[1],'gamma')
+    def __init__(self, k, r, hist, tail, orig_hist, max_error=None, max_cov=None,
+                *args,**kwargs):
+        super(Basic_PolymorphismModel, self).__init__(k, r, hist, tail, orig_hist, max_error=max_error) #inicializacia basic parametro
+        self.bounds = (self.bounds[0],self.bounds[1],(0,1))
+        self.defaults = (self.defaults[0],self.defaults[1],self._default_param(2, default=0.05)) #nastavenie defaultnych hodnot
+        self.polymorphism_rate = 0
+        self.total_distinct_kmers = sum(orig_hist[i] for i in orig_hist)
+
+
+    #polymorphism_rate computation
+    def compute_polymorphism_rate(self, c, err, g, genome_size):
+        ck = self.correct_c(c)/2.0
+        # lambda for kmers with s errors --- lambda pre k-mery s 's' chybami
+        l_s = self._get_lambda_s(ck, err)
+        # expected probability of kmers with s errors and coverage >= 1 --- ocakavana pravdepodobnost kmerov s 's' chybami a pokrytim aspon 1
+        n_s = [self.comb[s] * (1.0 - exp(-l_s[s])) for s in range(self.max_error)]
+        sum_n_s = fix_zero(sum(n_s[t] for t in range(self.max_error))) # suma tychto pravdepodobnosti
+        # portion of kmers with s errors --- pomer kmerov s 's' chybami
+        a_s = [n_s[s] / sum_n_s for s in range(self.max_error)]
+        # probability that unique kmer has coverage j (j > 0) --- pravdepodobnost, ze dany kmer ma pokrytie j (j > 0)
+        p_j = {
+            j: sum(
+                a_s[s] * tr_poisson(l_s[s], j) for s in range(self.max_error)
+            )
+            for j in self.hist
+        }
+        x_pd = g * self.total_distinct_kmers
+        sum_pp = sum([j*p_j[j] for j in p_j])
+        p_kmers = (x_pd*sum_pp)/(2*genome_size*self.correct_c(c)/2.0)
+        p = 1 - (1-p_kmers)**(1.0/self.k)
+
+        return p
+
+
+    # noinspection PyMethodOverriding
+    def compute_probabilities(self, c, err, g,*_):
+        # read to kmer coverage
+        ck = self.correct_c(c)
+
+        # lambda for non-polymorphic kmers with s errors
+        l_s = self._get_lambda_s(ck, err)
+
+        # lambda for polymorfic k-mers
+        pl_s = [(s*0.5) for s in l_s]
+
+        # expected probability of non-polymorphic kmers with s errors and coverage >= 1
+        n_s = [self.comb[s] * (1.0 - exp(-l_s[s])) for s in range(self.max_error)]
+        sum_n_s = fix_zero(sum(n_s[t] for t in range(self.max_error)))
+
+        # expected probability of polymorphic kmers with s errors and coverage >= 1
+        pn_s = [self.comb[s] * (1.0 - exp(-pl_s[s])) for s in range(self.max_error)]
+        sum_pn_s = fix_zero(sum(pn_s[t] for t in range(self.max_error))) # suma tychto pravdepodobnosti
+
+        # portion of non-polymorphic kmers with s errors
+        a_s = [n_s[s] / sum_n_s for s in range(self.max_error)]
+
+		# portion of non-polymorphic kmers with s errors
+        pa_s = [pn_s[s] / sum_pn_s for s in range(self.max_error)]
+
+        # probability that unique kmer has coverage j (j > 0)
+
+        p_j = {
+            j: (1-g)*sum(
+                a_s[s] * tr_poisson(l_s[s], j) for s in range(self.max_error)
+            ) + g * sum(pa_s[s] * tr_poisson(pl_s[s], j) for s in range(self.max_error))
+            for j in self.hist
+        }
+
         return p_j
 
 
