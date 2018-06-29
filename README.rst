@@ -70,8 +70,9 @@ Other included tools
 
 Copyright and citation
 ----------------------
+This section is applicable to original CovEst (0.5.6) by M. Hozza.
 
-CovEst is licenced under `GNU GPLv3 <http://www.gnu.org/licenses/gpl-3.0.en.html>`__ license.
+Original CovEst is licenced under `GNU GPLv3 <http://www.gnu.org/licenses/gpl-3.0.en.html>`__ license.
 
 CovEst is research software, so you should cite us when you use it in scientific publications!
    Hozza, M., Vinař, T., & Brejová, B. (2015, September). How Big is that Genome? Estimating Genome Size and Coverage from k-mer Abundance Spectra. In String Processing and Information Retrieval (pp. 199-209). Springer International Publishing.
