@@ -247,6 +247,7 @@ class Basic_PolymorphismModel(BasicModel):
     def __init__(self, k, r, hist, tail, orig_hist, max_error=None, max_cov=None,
                 *args,**kwargs):
         super(Basic_PolymorphismModel, self).__init__(k, r, hist, tail, orig_hist, max_error=max_error) #inicializacia basic parametro
+        print('Tail je: {}'.format(tail))
         self.bounds = (self.bounds[0],self.bounds[1],(0,1))
         self.defaults = (self.defaults[0],self.defaults[1],self._default_param(2, default=0.05)) #nastavenie defaultnych hodnot
         self.polymorphism_rate = 0
@@ -268,8 +269,9 @@ class Basic_PolymorphismModel(BasicModel):
             j: sum(
                 a_s[s] * tr_poisson(l_s[s], j) for s in range(self.max_error)
             )
-            for j in self.hist
+            for j in range(1,max(self.orig_hist.keys())//2)
         }
+
         x_pd = g * self.total_distinct_kmers
         sum_pp = sum([j*p_j[j] for j in p_j])
         p_kmers = (x_pd*sum_pp)/(2*genome_size*self.correct_c(c)/2.0)
