@@ -47,7 +47,7 @@ Input Histogram Specification:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The input histogram can be generated from the read data using `jellyfish <http://www.cbcb.umd.edu/software/jellyfish/>`__.
 
--  ``jellyfish count -m K -C reads.fa -o table.jf``
+-  ``jellyfish count -m K -C reads.fa -o reads_table.jf -s 1000000000``
 -  ``jellyfish histo table.jf -o reads.hist``
 
 The format of the histogram is just list of lines. Each lines contains an index and value separated by space.
