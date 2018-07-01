@@ -243,13 +243,12 @@ class RepeatsModel(BasicModel):
         return p_j
 
 class Basic_PolymorphismModel(BasicModel):
-    params = (BasicModel.params[0],BasicModel.params[1],'gamma')
+    params = BasicModel.params + ('gamma',)
     def __init__(self, k, r, hist, tail, orig_hist, max_error=None, max_cov=None,
                 *args,**kwargs):
-        super(Basic_PolymorphismModel, self).__init__(k, r, hist, tail, orig_hist, max_error=max_error) #inicializacia basic parametro
-        print('Tail je: {}'.format(tail))
+        super(Basic_PolymorphismModel, self).__init__(k, r, hist, tail, orig_hist, max_error=max_error)
         self.bounds = (self.bounds[0],self.bounds[1],(0,1))
-        self.defaults = (self.defaults[0],self.defaults[1],self._default_param(2, default=0.05)) #nastavenie defaultnych hodnot
+        self.defaults = (self.defaults[0],self.defaults[1],self._default_param(2, default=0.05))
         self.polymorphism_rate = 0
         self.total_distinct_kmers = sum(orig_hist[i] for i in orig_hist)
 
@@ -314,6 +313,100 @@ class Basic_PolymorphismModel(BasicModel):
             for j in self.hist
         }
 
+        return p_j
+
+class Repeats_Polymorphism_EqualModel(RepeatsModel):
+    params = RepeatsModel.params + ('gamma',) # parametre modelu
+    def __init__(self, k, r, hist, tail, orig_hist, max_error=None, max_cov=None, threshold=1e-8,
+                 min_single_copy_ratio=0.3, *args, **kwargs):
+        super(RepeatsModel, self).__init__(k, r, hist, tail, orig_hist, max_error=max_error) #inicializacia repeats parametrov
+        self.repeats = True #povolenie opakovani
+        self.bounds = self.bounds +  ((min_single_copy_ratio, 1), (0, 1), (0, 1), (min_single_copy_ratio, 1), (0, 1), (0, 1),(0, 1)) #nastavenie ohraniceni
+        self.defaults = self.defaults + tuple(
+            self._default_param(i, default=0.5) for i in range(2, 9) #nastavenie defaultnych hodnot
+        )
+        self.threshold = threshold #nastavenie tresholdu
+
+    def get_hist_threshold(self, b_o, threshold): #napisat Miovi co toto robi
+        hist_size = max(self.hist)
+        if threshold is not None:
+            for o in range(1, hist_size):
+                if b_o(o) <= threshold:
+                    return o
+        return hist_size
+
+    @staticmethod
+    def get_b_o(q1, q2, q): #urci b_o
+        o_2 = (1 - q1) * q2
+        o_n = (1 - q1) * (1 - q2) * q
+
+        def b_o(o):
+            if o == 0:
+                return 0
+            elif o == 1:
+                return q1
+            elif o == 2:
+                return o_2
+            else:
+                return o_n * (1 - q) ** (o - 3)
+
+        return b_o
+
+    # noinspection PyMethodOverriding
+    def compute_probabilities(self, c, err, q1, q2, q, g, *_):
+        b_o = self.get_b_o(q1, q2, q)
+        threshold_o = self.get_hist_threshold(b_o, self.threshold)
+
+        # read to kmer coverage
+        c = self.correct_c(c)
+
+
+        # lambda for kmers with s errors
+        l_s = self._get_lambda_s(c, err)
+        pl_s = [(s*0.5) for s in l_s]
+
+        # expected probability of kmers with s errors and coverage >= 1
+        # noinspection PyTypeChecker
+        n_os = [None] + [
+            [self.comb[s] * (1.0 - exp(o * -l_s[s])) for s in range(self.max_error)]
+            for o in range(1, threshold_o)
+        ]
+        sum_n_os = [None] + [
+            fix_zero(sum(n_os[o][t] for t in range(self.max_error))) for o in range(1, threshold_o)
+        ]
+
+        pn_os = [None] + [
+            [self.comb[s] * (1.0 - exp(o * -pl_s[s])) for s in range(self.max_error)]
+            for o in range(1, threshold_o)
+        ]
+        sum_pn_os = [None] + [
+            fix_zero(sum(pn_os[o][t] for t in range(self.max_error))) for o in range(1, threshold_o)
+        ]
+
+        # portion of kmers wit1h s errors
+        # noinspection PyTypeChecker
+        a_os = [None] + [
+            [n_os[o][s] / (sum_n_os[o] if sum_n_os[o] != 0 else 1) for s in range(self.max_error)]
+            for o in range(1, threshold_o)
+        ]
+
+        pa_os = [None] + [
+            [pn_os[o][s] / (sum_pn_os[o] if sum_pn_os[o] != 0 else 1) for s in range(self.max_error)]
+            for o in range(1, threshold_o)
+        ]
+
+        # probability that unique kmer has coverage j (j > 0)
+        p_j = {
+            j: (1-g)*sum(
+                b_o(o) * sum(
+                    a_os[o][s] * tr_poisson(o * l_s[s], j) for s in range(self.max_error)
+                ) for o in range(1, threshold_o) ) +
+                g*sum(
+                b_o(o) * sum(
+                    pa_os[o][s] * tr_poisson(o * pl_s[s], j) for s in range(self.max_error)
+                ) for o in range(1, threshold_o) )
+            for j in self.hist
+        }
         return p_j
 
 
