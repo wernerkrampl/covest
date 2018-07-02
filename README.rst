@@ -15,14 +15,7 @@ Requirements
 - python3-dev
 - gcc
 
-Installation
-------------
-We suggest to install *CovEst* in python3 virtual environment.
-
-``pip install covest``
-
-For development:
-~~~~~~~~~~~~~~~~
+#Installation
 
 ``pip install -e .`` from the project directory
 
