@@ -15,7 +15,7 @@ Requirements
 - python3-dev
 - gcc
 
-#Installation
+-Installation
 
 ``pip install -e .`` from the project directory
 
