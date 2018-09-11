@@ -9,6 +9,17 @@ reads.
 .. image:: https://travis-ci.org/mhozza/covest.svg?branch=master
     :target: https://travis-ci.org/mhozza/covest
 
+Important
+---------
+
+Prediction models have been renamed in version 0.5.9 to match names in publications.
+Changes are as follows:
+
+Basic -> E
+Repeats -> RE
+Basic_Polymorphism -> EP
+Repeats_Polymorphism_Equal -> ERNPE
+
 Requirements
 ------------
 - python 3.4+
