@@ -14,7 +14,7 @@ from covest.utils import safe_log, fix_zero
 
 MODEL_CLASS_SUFFIX = 'Model'
 
-class BasicModel:
+class EModel:
     params = ('coverage', 'error_rate')
     def __init__(self, k, r, hist, tail, orig_hist, max_error=None, max_cov=None, *args, **kwargs):
         self.repeats = False
@@ -171,11 +171,11 @@ class BasicModel:
             pass
 
 
-class RepeatsModel(BasicModel):
-    params = BasicModel.params + ('q1', 'q2', 'q')
+class REModel(EModel):
+    params = EModel.params + ('q1', 'q2', 'q')
     def __init__(self, k, r, hist, tail, orig_hist, max_error=None, max_cov=None, threshold=1e-8,
                  min_single_copy_ratio=0.3, *args, **kwargs):
-        super(RepeatsModel, self).__init__(k, r, hist, tail, orig_hist, max_error=max_error)
+        super(REModel, self).__init__(k, r, hist, tail, orig_hist, max_error=max_error)
         self.repeats = True
         self.bounds = self.bounds +  ((min_single_copy_ratio, 1), (0, 1), (0, 1))
         self.defaults = self.defaults + tuple(
@@ -242,11 +242,11 @@ class RepeatsModel(BasicModel):
         }
         return p_j
 
-class Basic_PolymorphismModel(BasicModel):
-    params = BasicModel.params + ('gamma',)
+class EPModel(EModel):
+    params = EModel.params + ('gamma',)
     def __init__(self, k, r, hist, tail, orig_hist, max_error=None, max_cov=None,
                 *args,**kwargs):
-        super(Basic_PolymorphismModel, self).__init__(k, r, hist, tail, orig_hist, max_error=max_error)
+        super(EPModel, self).__init__(k, r, hist, tail, orig_hist, max_error=max_error)
         self.bounds = (self.bounds[0],self.bounds[1],(0,1))
         self.defaults = (self.defaults[0],self.defaults[1],self._default_param(2, default=0.05))
         self.polymorphism_rate = 0
@@ -315,11 +315,11 @@ class Basic_PolymorphismModel(BasicModel):
 
         return p_j
 
-class Repeats_Polymorphism_EqualModel(RepeatsModel):
-    params = RepeatsModel.params + ('gamma',) # parametre modelu
+class ERNPEModel(REModel):
+    params = REModel.params + ('gamma',) # parametre modelu
     def __init__(self, k, r, hist, tail, orig_hist, max_error=None, max_cov=None, threshold=1e-8,
                  min_single_copy_ratio=0.3, *args, **kwargs):
-        super(RepeatsModel, self).__init__(k, r, hist, tail, orig_hist, max_error=max_error) #inicializacia repeats parametrov
+        super(ERNPEModel, self).__init__(k, r, hist, tail, orig_hist, max_error=max_error) #inicializacia repeats parametrov
         self.repeats = True #povolenie opakovani
         self.bounds = self.bounds +  ((min_single_copy_ratio, 1), (0, 1), (0, 1), (min_single_copy_ratio, 1), (0, 1), (0, 1),(0, 1)) #nastavenie ohraniceni
         self.defaults = self.defaults + tuple(

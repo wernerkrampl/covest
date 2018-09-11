@@ -7,7 +7,7 @@ import yaml
 from Bio import SeqIO
 from covest import __version__
 
-from .models import BasicModel, models, select_model
+from .models import EModel, models, select_model
 from .utils import safe_int, verbose_print
 
 
@@ -158,7 +158,7 @@ def print_output(
             output_data['genome_size_reads'] = safe_int(
                 round(reads_size / (estimated[0] * sample_factor * orig_sample_factor))
             )
-        if model.short_name() == 'basic_polymorphism':
+        if model.short_name() == 'ep':
             coverage = output_data['coverage']
             error_rate = output_data['error_rate']
             gamma = output_data['gamma']
